@@ -1,15 +1,23 @@
 let tasks = [];
+let currentFilter = 'all';
 const taskInput = document.getElementById('taskInput');
 const addTaskBtn = document.getElementById('addTaskBtn');
 const tasksList = document.getElementById('tasksList');
 const totalTasksSpan = document.getElementById('totalTasks');
 const pendingTasksSpan = document.getElementById('pendingTasks');
 const filterButtons = document.querySelectorAll('.filter-btn');
+const deleteCompletedBtn = document.getElementById('deleteCompletedBtn');
 
-// Cargar tareas guardadas
+// Cargar tareas guardadas de forma segura
 const savedTasks = localStorage.getItem('tasks');
 if (savedTasks) {
-    tasks = JSON.parse(savedTasks);
+    try {
+        tasks = JSON.parse(savedTasks);
+    } catch (e) {
+        console.error('Error parsing tasks from localStorage', e);
+        localStorage.removeItem('tasks');
+        tasks = [];
+    }
     renderTasks();
     updateStats();
 }
@@ -24,9 +32,18 @@ filterButtons.forEach(button => {
     button.addEventListener('click', () => {
         filterButtons.forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
-        filterTasks(button.dataset.filter);
+        renderTasks(button.dataset.filter);
     });
 });
+
+if (deleteCompletedBtn) {
+    deleteCompletedBtn.addEventListener('click', () => {
+        tasks = tasks.filter(t => !t.completed);
+        saveTasks();
+        renderTasks();
+        updateStats();
+    });
+}
 
 // Funciones
 function addTask() {
@@ -46,45 +63,13 @@ function addTask() {
     taskInput.value = '';
 }
 
-function renderTasks() {
-    tasksList.innerHTML = '';
-    tasks.forEach(task => {
-        const taskElement = document.createElement('div');
-        taskElement.className = `task-item ${task.completed ? 'completed' : ''}`;
-        taskElement.innerHTML = `
-            <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
-            <span class="task-text">${task.text}</span>
-            <button class="delete-btn">Eliminar</button>
-        `;
-
-        // Event Listeners para cada tarea
-        const checkbox = taskElement.querySelector('.task-checkbox');
-        const deleteBtn = taskElement.querySelector('.delete-btn');
-
-        checkbox.addEventListener('change', () => {
-            task.completed = checkbox.checked;
-            saveTasks();
-            renderTasks();
-            updateStats();
-        });
-
-        deleteBtn.addEventListener('click', () => {
-            tasks = tasks.filter(t => t.id !== task.id);
-            saveTasks();
-            renderTasks();
-            updateStats();
-        });
-
-        tasksList.appendChild(taskElement);
-    });
-}
-
-function filterTasks(filter) {
+function renderTasks(filter = currentFilter) {
+    currentFilter = filter;
     tasksList.innerHTML = '';
     const filteredTasks = tasks.filter(task => {
-        if (filter === 'all') return true;
-        if (filter === 'pending') return !task.completed;
-        if (filter === 'completed') return task.completed;
+        if (currentFilter === 'all') return true;
+        if (currentFilter === 'pending') return !task.completed;
+        if (currentFilter === 'completed') return task.completed;
     });
 
     filteredTasks.forEach(task => {
@@ -93,10 +78,13 @@ function filterTasks(filter) {
         taskElement.innerHTML = `
             <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
             <span class="task-text">${task.text}</span>
+            <button class="edit-btn">Editar</button>
             <button class="delete-btn">Eliminar</button>
         `;
 
+        // Event Listeners para cada tarea
         const checkbox = taskElement.querySelector('.task-checkbox');
+        const editBtn = taskElement.querySelector('.edit-btn');
         const deleteBtn = taskElement.querySelector('.delete-btn');
 
         checkbox.addEventListener('change', () => {
@@ -104,6 +92,19 @@ function filterTasks(filter) {
             saveTasks();
             renderTasks();
             updateStats();
+        });
+
+        editBtn.addEventListener('click', () => {
+            const newText = prompt('Editar tarea', task.text);
+            if (newText !== null) {
+                const trimmed = newText.trim();
+                if (trimmed !== '') {
+                    task.text = trimmed;
+                    saveTasks();
+                    renderTasks();
+                    updateStats();
+                }
+            }
         });
 
         deleteBtn.addEventListener('click', () => {
@@ -116,6 +117,7 @@ function filterTasks(filter) {
         tasksList.appendChild(taskElement);
     });
 }
+
 
 function saveTasks() {
     localStorage.setItem('tasks', JSON.stringify(tasks));

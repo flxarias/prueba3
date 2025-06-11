@@ -114,6 +114,26 @@ button {
     background-color: #cc0000;
 }
 
+.edit-btn {
+    background-color: #ffc107;
+    color: #333;
+    padding: 5px 10px;
+    margin-right: 10px;
+}
+
+.edit-btn:hover {
+    background-color: #e0a800;
+}
+
+#deleteCompletedBtn {
+    background-color: #ff9800;
+    color: white;
+}
+
+#deleteCompletedBtn:hover {
+    background-color: #fb8c00;
+}
+
 .stats {
     display: flex;
     justify-content: space-between;
